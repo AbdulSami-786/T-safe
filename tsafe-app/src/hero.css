@@ -1,0 +1,69 @@
+/* ==========================================================================
+   Hero — taken from design concept 5 ("Pure Minimal")
+   ========================================================================== */
+.hero5 {
+  --blue: #04408a; --sky: #159fe1; --mut: #52627a;
+  padding-top: 64px; overflow: hidden; text-align: center;
+}
+.hero5 .kicker { font-family: "Inter", var(--sans); font-size: 1rem; color: var(--mut); }
+.hero5 h1 { margin-top: 14px; font-family: "Inter Tight", var(--sans); font-weight: 700; font-size: clamp(2.8rem, 8.2vw, 7.2rem); line-height: 1; letter-spacing: -.055em; }
+.hero5 .blue { background: linear-gradient(100deg, var(--blue), var(--sky)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hero5 .lede { margin-top: 22px; font-family: "Inter", var(--sans); font-size: clamp(1.1rem, 2vw, 1.5rem); color: var(--mut); }
+.h5-cta { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px 28px; margin-top: 30px; }
+.h5-btn { display: inline-flex; align-items: center; justify-content: center; padding: 13px 28px; border-radius: 999px; background: var(--blue); color: #fff; font-family: "Inter", var(--sans); font-weight: 500; font-size: 1rem; transition: background .25s, transform .25s, box-shadow .25s; }
+.h5-btn:hover { background: #032f66; transform: scale(1.04); box-shadow: 0 14px 30px -14px rgba(4, 64, 138, .7); }
+.tlink { display: inline-flex; align-items: center; gap: 6px; color: var(--blue); font-family: "Inter", var(--sans); font-weight: 500; transition: gap .25s; }
+.tlink:hover { gap: 12px; }
+.offer { display: inline-flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 26px; padding: 8px 16px; border-radius: 99px; background: rgba(4, 64, 138, .08); font-family: "Inter", var(--sans); font-size: .82rem; color: var(--mut); }
+.offer .ico { color: var(--blue); }
+
+.tiles-wrap { margin-top: 50px; perspective: 1700px; }
+.tiles { display: flex; justify-content: center; align-items: flex-end; gap: 22px; padding-inline: 20px; transform-origin: 50% 100%; transform: rotateX(10deg); }
+.tile { position: relative; display: block; overflow: hidden; background: #fff; border-radius: 34px; box-shadow: 0 50px 90px -50px rgba(0, 0, 0, .45); transition: transform .6s cubic-bezier(.2, .8, .2, 1); }
+.tile:hover { transform: translateY(-10px); }
+.tile img { width: 100%; height: 100%; object-fit: cover; }
+.tile span { position: absolute; left: 16px; bottom: 16px; padding: 7px 14px; border-radius: 99px; background: rgba(255, 255, 255, .78); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); font-family: "Inter", var(--sans); font-size: .8rem; font-weight: 500; }
+.t1, .t3 { width: min(300px, 28vw); height: min(440px, 42vw); }
+.t2 { width: min(350px, 32vw); height: min(540px, 52vw); }
+
+@supports (animation-timeline: scroll()) {
+  .tiles { animation: tilt linear both; animation-timeline: scroll(root); animation-range: 0 55vh; }
+  @keyframes tilt { from { transform: rotateX(28deg) scale(.86); opacity: .8; } to { transform: rotateX(0) scale(1); opacity: 1; } }
+}
+
+@media (max-width: 720px) {
+  .hero5 { padding-top: 60px; }
+  .tiles { gap: 10px; padding-inline: 10px; }
+  .tile { border-radius: 22px; }
+  .tile span { left: 8px; bottom: 8px; padding: 5px 10px; font-size: .64rem; }
+  .t1, .t3 { width: 30vw; height: 46vw; }
+  .t2 { width: 36vw; height: 56vw; }
+}
+
+/* ---- Featured product: Soft Aura 15K only — colour changes on hover ---- */
+.tiles .tile.feat { width: min(380px, 80vw); height: auto; aspect-ratio: 3 / 4.2; background: #fff; }
+.feat img { position: absolute; inset: 0; transition: opacity .55s ease, transform .7s cubic-bezier(.2, .8, .2, 1); }
+.feat .fb { opacity: 0; }
+.feat:hover .fa, .feat:focus-visible .fa { opacity: 0; }
+.feat:hover .fb, .feat:focus-visible .fb { opacity: 1; }
+.feat:hover img { transform: scale(1.04); }
+.tiles .feat-lbl { display: grid; left: 50%; bottom: 16px; translate: -50% 0; padding: 0; background: rgba(255, 255, 255, .85); overflow: hidden; }
+.feat-lbl i { grid-area: 1 / 1; padding: 8px 18px; font-style: normal; white-space: nowrap; transition: opacity .4s; }
+.feat-lbl .lb { opacity: 0; }
+.feat:hover .la, .feat:focus-visible .la { opacity: 0; }
+.feat:hover .lb, .feat:focus-visible .lb { opacity: 1; }
+.feat-hint { display: inline-flex; align-items: center; gap: 10px; margin-top: 22px; font-family: "Inter", var(--sans); font-size: .85rem; color: var(--mut); }
+.feat-hint .dots { display: inline-flex; gap: 5px; }
+.feat-hint .dots i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); background: #fff; }
+.feat-hint .dots i + i { background: var(--ink); }
+.tiles-wrap { text-align: center; }
+/* touch screens have no hover — flip colour automatically */
+@media (hover: none) {
+  .feat .fa, .feat .la { animation: featA 6s ease-in-out infinite; }
+  .feat .fb, .feat .lb { animation: featB 6s ease-in-out infinite; }
+  .feat-hint { display: none; }
+  @keyframes featA { 0%, 40% { opacity: 1; } 50%, 90% { opacity: 0; } 100% { opacity: 1; } }
+  @keyframes featB { 0%, 40% { opacity: 0; } 50%, 90% { opacity: 1; } 100% { opacity: 0; } }
+}
+@media (prefers-reduced-motion: reduce) { .feat .fa, .feat .la, .feat .fb, .feat .lb { animation: none !important; } }
+@media (max-width: 720px) { .tiles .tile.feat { width: min(300px, 76vw); border-radius: 26px; } .tiles { padding-inline: 0; } }
