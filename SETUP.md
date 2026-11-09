@@ -8,7 +8,7 @@ Pages (each has its own URL): `/` Home · `/shop` Value-Saver Series · `/bundle
 ## 1. Run it now (Demo mode — no Google needed)
 
 ```bash
-cd tsafe-app
+
 npm install
 npm run dev          # http://localhost:5173
 ```
@@ -26,7 +26,7 @@ Demo admin: `admin@tsafe.pk` / `admin123`. (Demo admin does not exist once you c
    `Products · Users · Sessions · Orders · Reviews · Subscribers`, plus a private Drive folder *T-Safe Payment Proofs*.
 5. **Deploy → New deployment → type: Web app** → *Execute as:* **Me** · *Who has access:* **Anyone** → Deploy.
    Copy the **Web app URL** (ends in `/exec`).
-6. In `tsafe-app` copy `.env.example` to `.env` and paste the URL:
+6. In the project root copy `.env.example` to `.env` and paste the URL:
    ```
    VITE_API_URL=https://script.google.com/macros/s/XXXXXXXX/exec
    ```
