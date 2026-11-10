@@ -101,6 +101,16 @@ var ACTIONS = {
   trackOrder: trackOrder_,
   adminOrders: adminOrders_,
   adminUpdateOrder: adminUpdateOrder_,
+  adminDeleteOrder: adminDeleteOrder_,
+  adminUsers: adminUsers_,
+  adminUpdateUser: adminUpdateUser_,
+  adminDeleteUser: adminDeleteUser_,
+  adminProducts: adminProducts_,
+  adminUpdateProduct: adminUpdateProduct_,
+  adminReviews: adminReviews_,
+  adminUpdateReview: adminUpdateReview_,
+  adminDeleteReview: adminDeleteReview_,
+  adminSubscribers: adminSubscribers_,
   reviews: reviews_,
   addReview: addReview_,
   subscribe: subscribe_
@@ -393,6 +403,18 @@ function adminUpdateOrder_(b) {
     if (b.courier !== undefined) patch.Courier = str_(b.courier, 60);
     if (b.trackingNo !== undefined) patch.TrackingNo = str_(b.trackingNo, 60);
 
+    // Optional: correct the customer's delivery details.
+    if (b.customer) {
+      var c = b.customer;
+      var cn = str_(c.name, 80), ce = str_(c.email, 120), cp = normPhone_(c.phone), ca = str_(c.address, 300), cc = str_(c.city, 60);
+      if (cn.length < 2) fail_('Customer name is too short.');
+      if (!isPhone_(cp)) fail_('Enter a valid Pakistani mobile number (03XXXXXXXXX).');
+      if (ce && !isEmail_(ce)) fail_('That email address does not look right.');
+      if (ca.length < 8) fail_('Delivery address is too short.');
+      if (cc.length < 2) fail_('Please enter the city.');
+      patch.Name = cn; patch.Email = ce; patch.Phone = cp; patch.Address = ca; patch.City = cc;
+    }
+
     var statusChanged = false;
     if (b.status && b.status !== o.Status) {
       if (STATUSES.indexOf(b.status) < 0) fail_('Invalid status.');
@@ -410,6 +432,18 @@ function adminUpdateOrder_(b) {
   });
 }
 
+/** Permanently delete an order row (stock is returned unless it was already cancelled). */
+function adminDeleteOrder_(b) {
+  needAdmin_(b.token);
+  return withLock_(function () {
+    var o = readAll_('Orders').filter(function (x) { return x.OrderID === b.orderId; })[0];
+    if (!o) fail_('Order not found.');
+    adjustStockOnCancel_(o, 'Cancelled');
+    sheet_('Orders').deleteRow(o._row);
+    return {};
+  });
+}
+
 /** Give stock back when an order is cancelled (and take it again if a cancellation is reversed). */
 function adjustStockOnCancel_(order, newStatus) {
   var was = order.Status === 'Cancelled', will = newStatus === 'Cancelled';
@@ -423,6 +457,143 @@ function adjustStockOnCancel_(order, newStatus) {
       updateCells_('Products', p._row, { Stock: Math.max(0, byId[it.id].stock) });
     }
   });
+}
+
+// ----------------------------- ADMIN: USERS ---------------------------
+function adminUserOut_(u, orders) {
+  var mine = orders.filter(function (o) { return o.UserID === u.UserID && o.Status !== 'Cancelled'; });
+  return {
+    id: u.UserID, name: unsafe_(u.Name), email: String(u.Email), phone: normPhone_(u.Phone),
+    role: String(u.Role || 'customer').toLowerCase(), createdAt: u.CreatedAt,
+    orders: mine.length, spent: mine.reduce(function (s, o) { return s + Number(o.Total || 0); }, 0)
+  };
+}
+
+function adminUsers_(b) {
+  needAdmin_(b.token);
+  var orders = readAll_('Orders');
+  return readAll_('Users').reverse().map(function (u) { return adminUserOut_(u, orders); });
+}
+
+function deleteSessionsOf_(userId, keepTokenHash) {
+  var sh = sheet_('Sessions'), rows = readAll_('Sessions');
+  for (var i = rows.length - 1; i >= 0; i--) {
+    if (rows[i].UserID === userId && rows[i].TokenHash !== keepTokenHash) sh.deleteRow(rows[i]._row);
+  }
+}
+
+function adminUpdateUser_(b) {
+  var me = needAdmin_(b.token);
+  return withLock_(function () {
+    var users = readAll_('Users');
+    var u = users.filter(function (x) { return x.UserID === b.userId; })[0];
+    if (!u) fail_('User not found.');
+    var isSelf = u.UserID === me.UserID, patch = {};
+
+    if (b.name !== undefined) {
+      var n = str_(b.name, 80); if (n.length < 2) fail_('Please enter the full name.'); patch.Name = n;
+    }
+    if (b.email !== undefined) {
+      var em = str_(b.email, 120).toLowerCase(); if (!isEmail_(em)) fail_('Please enter a valid email address.');
+      if (users.some(function (x) { return x.UserID !== u.UserID && String(x.Email).toLowerCase() === em; })) fail_('Another account already uses that email.');
+      patch.Email = em;
+    }
+    if (b.phone !== undefined) {
+      var ph = normPhone_(b.phone); if (!isPhone_(ph)) fail_('Enter a valid Pakistani mobile number (03XXXXXXXXX).'); patch.Phone = ph;
+    }
+    if (b.role !== undefined) {
+      var role = String(b.role).toLowerCase();
+      if (role !== 'customer' && role !== 'admin') fail_('Invalid role.');
+      if (role !== String(u.Role || 'customer').toLowerCase() && isSelf) fail_('You cannot change your own role.');
+      patch.Role = role;
+    }
+    var pwChanged = false;
+    if (b.newPassword) {
+      var pw = String(b.newPassword);
+      if (pw.length < 8 || pw.length > 100) fail_('Password must be at least 8 characters.');
+      var salt = Utilities.getUuid();
+      patch.Salt = salt; patch.PasswordHash = hashPassword_(salt, pw);
+      pwChanged = true;
+    }
+    updateCells_('Users', u._row, patch);
+    if (pwChanged) deleteSessionsOf_(u.UserID, isSelf ? sha256_(String(b.token)) : null); // sign the user out everywhere
+    var fresh = readAll_('Users').filter(function (x) { return x.UserID === u.UserID; })[0];
+    return adminUserOut_(fresh, readAll_('Orders'));
+  });
+}
+
+/** Delete an account + its login sessions. Their past orders stay in the Orders sheet. */
+function adminDeleteUser_(b) {
+  var me = needAdmin_(b.token);
+  return withLock_(function () {
+    var u = readAll_('Users').filter(function (x) { return x.UserID === b.userId; })[0];
+    if (!u) fail_('User not found.');
+    if (u.UserID === me.UserID) fail_('You cannot delete your own account.');
+    deleteSessionsOf_(u.UserID, null);
+    sheet_('Users').deleteRow(u._row);
+    return {};
+  });
+}
+
+// ----------------------------- ADMIN: PRODUCTS ------------------------
+function adminProductOut_(p) {
+  return { id: p.id, name: p.name, price: p.price, mrp: p.mrp, stock: p.stock, colors: p.colors, active: p.active };
+}
+function adminProducts_(b) {
+  needAdmin_(b.token);
+  return loadProducts_().map(adminProductOut_);
+}
+function adminUpdateProduct_(b) {
+  needAdmin_(b.token);
+  return withLock_(function () {
+    var p = loadProducts_().filter(function (x) { return x.id === String(b.id); })[0];
+    if (!p) fail_('Product not found.');
+    var patch = {};
+    if (b.price !== undefined) {
+      var price = Math.round(Number(b.price)); if (!(price >= 0)) fail_('Enter a valid price.'); patch.Price = price;
+    }
+    if (b.mrp !== undefined) {
+      var mrp = Math.round(Number(b.mrp)); if (!(mrp >= 0)) fail_('Enter a valid MRP.'); patch.MRP = mrp;
+    }
+    if (b.stock !== undefined) { // blank / null = unlimited
+      if (b.stock === '' || b.stock === null) patch.Stock = '';
+      else { var st = Math.floor(Number(b.stock)); if (!(st >= 0)) fail_('Enter a valid stock number.'); patch.Stock = st; }
+    }
+    if (b.active !== undefined) patch.Active = b.active ? 'TRUE' : 'FALSE';
+    updateCells_('Products', p._row, patch);
+    return adminProductOut_(loadProducts_().filter(function (x) { return x.id === p.id; })[0]);
+  });
+}
+
+// ----------------------------- ADMIN: REVIEWS / SUBSCRIBERS -----------
+function adminReviews_(b) {
+  needAdmin_(b.token);
+  return readAll_('Reviews').reverse().map(function (r) {
+    return { id: r.ReviewID, createdAt: r.CreatedAt, userId: r.UserID, name: unsafe_(r.Name), rating: Number(r.Rating),
+             title: unsafe_(r.Title), text: unsafe_(r.Text), approved: String(r.Approved).toUpperCase() === 'TRUE' };
+  });
+}
+function adminUpdateReview_(b) {
+  needAdmin_(b.token);
+  return withLock_(function () {
+    var r = readAll_('Reviews').filter(function (x) { return x.ReviewID === b.reviewId; })[0];
+    if (!r) fail_('Review not found.');
+    updateCells_('Reviews', r._row, { Approved: b.approved ? 'TRUE' : 'FALSE' });
+    return {};
+  });
+}
+function adminDeleteReview_(b) {
+  needAdmin_(b.token);
+  return withLock_(function () {
+    var r = readAll_('Reviews').filter(function (x) { return x.ReviewID === b.reviewId; })[0];
+    if (!r) fail_('Review not found.');
+    sheet_('Reviews').deleteRow(r._row);
+    return {};
+  });
+}
+function adminSubscribers_(b) {
+  needAdmin_(b.token);
+  return readAll_('Subscribers').reverse().map(function (s) { return { email: String(s.Email), createdAt: s.CreatedAt }; });
 }
 
 // ----------------------------- REVIEWS / NEWSLETTER -------------------

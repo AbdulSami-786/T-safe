@@ -3,7 +3,7 @@
 **Look & feel:** concept 4 ("Colour Pop") re-coloured to the Value Saver logo palette (navy `#04408a`, sky `#159fe1`) — colours live in `:root` at the top of `src/base.css`.
 
 Pages (each has its own URL): `/` Home · `/shop` Value-Saver Series · `/bundles` · `/luxe` LUXE Premium · `/reviews` ·
-`/cart` · `/checkout` (delivery + payment accounts + proof upload) · `/login` · `/account` My Orders · `/track` Order Tracking · `/admin` (orders desk).
+`/cart` · `/checkout` (delivery + payment accounts + proof upload) · `/login` · `/account` My Orders · `/track` Order Tracking · `/admin` (admin dashboard: orders, payment verification, users, products, reviews, subscribers).
 
 ## 1. Run it now (Demo mode — no Google needed)
 

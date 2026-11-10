@@ -3,7 +3,7 @@
 import { PRODUCTS, DELIVERY_FEE, FREE_DELIVERY_FROM } from '../data/products';
 import { normPhone, isEmail, isPhone } from '../utils/format';
 
-const K = { users: 'ts_users', sess: 'ts_sessions', orders: 'ts_orders', reviews: 'ts_reviews', subs: 'ts_subs', seq: 'ts_seq' };
+const K = { users: 'ts_users', sess: 'ts_sessions', orders: 'ts_orders', reviews: 'ts_reviews', subs: 'ts_subs', seq: 'ts_seq', products: 'ts_products' };
 const load = (k, d) => {
   try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; }
 };
@@ -46,7 +46,8 @@ function newSession(userId) {
 
 const handlers = {
   async products() {
-    return Object.values(PRODUCTS).map((p) => ({ id: p.id, name: p.name, price: p.price, mrp: p.mrp, stock: null, active: true }));
+    const ov = load(K.products, {});
+    return Object.values(PRODUCTS).map((p) => ({ id: p.id, name: p.name, price: p.price, mrp: p.mrp, stock: null, active: true, ...(ov[p.id] || {}) }));
   },
 
   async register({ name, email, phone, password }) {
@@ -145,10 +146,18 @@ const handlers = {
     return load(K.orders, []).slice().reverse();
   },
 
-  async adminUpdateOrder({ token, orderId, status, courier, trackingNo, note }) {
+  async adminUpdateOrder({ token, orderId, status, courier, trackingNo, note, customer }) {
     needAdmin(token);
     const orders = load(K.orders, []);
     const o = orders.find((x) => x.id === orderId) || fail('Order not found.');
+    if (customer) {
+      if (String(customer.name || '').trim().length < 2) fail('Customer name is too short.');
+      if (!isPhone(customer.phone)) fail('Enter a valid Pakistani mobile number (03XXXXXXXXX).');
+      if (customer.email && !isEmail(customer.email)) fail('That email address does not look right.');
+      if (String(customer.address || '').trim().length < 8) fail('Delivery address is too short.');
+      if (String(customer.city || '').trim().length < 2) fail('Please enter the city.');
+      o.customer = { name: customer.name.trim(), email: (customer.email || '').trim(), phone: normPhone(customer.phone), address: customer.address.trim(), city: customer.city.trim() };
+    }
     if (courier !== undefined) o.courier = String(courier).slice(0, 60);
     if (trackingNo !== undefined) o.trackingNo = String(trackingNo).slice(0, 60);
     if (status && status !== o.status) {
@@ -158,6 +167,112 @@ const handlers = {
     o.updatedAt = now();
     save(K.orders, orders);
     return o;
+  },
+
+  async adminDeleteOrder({ token, orderId }) {
+    needAdmin(token);
+    const orders = load(K.orders, []);
+    if (!orders.some((x) => x.id === orderId)) fail('Order not found.');
+    save(K.orders, orders.filter((x) => x.id !== orderId));
+    return {};
+  },
+
+  async adminUsers({ token }) {
+    needAdmin(token);
+    const orders = load(K.orders, []);
+    return load(K.users, []).slice().reverse().map((u) => {
+      const mine = orders.filter((o) => o.userId === u.id && o.status !== 'Cancelled');
+      return { ...pub(u), createdAt: u.createdAt, orders: mine.length, spent: mine.reduce((s, o) => s + o.total, 0) };
+    });
+  },
+
+  async adminUpdateUser({ token, userId, name, email, phone, role, newPassword }) {
+    const me = needAdmin(token);
+    const users = load(K.users, []);
+    const u = users.find((x) => x.id === userId) || fail('User not found.');
+    if (name !== undefined) { if (String(name).trim().length < 2) fail('Please enter the full name.'); u.name = String(name).trim(); }
+    if (email !== undefined) {
+      const em = String(email).trim().toLowerCase();
+      if (!isEmail(em)) fail('Please enter a valid email address.');
+      if (users.some((x) => x.id !== u.id && x.email === em)) fail('Another account already uses that email.');
+      u.email = em;
+    }
+    if (phone !== undefined) { if (!isPhone(phone)) fail('Enter a valid Pakistani mobile number (03XXXXXXXXX).'); u.phone = normPhone(phone); }
+    if (role !== undefined) {
+      if (!['customer', 'admin'].includes(role)) fail('Invalid role.');
+      if (role !== u.role && u.id === me.id) fail('You cannot change your own role.');
+      u.role = role;
+    }
+    if (newPassword) {
+      if (String(newPassword).length < 8) fail('Password must be at least 8 characters.');
+      u.salt = uid();
+      u.hash = await hash(u.salt + newPassword);
+    }
+    save(K.users, users);
+    const orders = load(K.orders, []).filter((o) => o.userId === u.id && o.status !== 'Cancelled');
+    return { ...pub(u), createdAt: u.createdAt, orders: orders.length, spent: orders.reduce((s, o) => s + o.total, 0) };
+  },
+
+  async adminDeleteUser({ token, userId }) {
+    const me = needAdmin(token);
+    if (userId === me.id) fail('You cannot delete your own account.');
+    const users = load(K.users, []);
+    if (!users.some((x) => x.id === userId)) fail('User not found.');
+    save(K.users, users.filter((x) => x.id !== userId));
+    const sess = load(K.sess, {});
+    Object.keys(sess).forEach((t) => { if (sess[t].userId === userId) delete sess[t]; });
+    save(K.sess, sess);
+    return {};
+  },
+
+  async adminProducts({ token }) {
+    needAdmin(token);
+    const ov = load(K.products, {});
+    return Object.values(PRODUCTS).map((p) => ({
+      id: p.id, name: p.name, colors: p.colors.map((c) => c.name),
+      price: p.price, mrp: p.mrp, stock: null, active: true, ...(ov[p.id] || {}),
+    }));
+  },
+
+  async adminUpdateProduct({ token, id, price, mrp, stock, active }) {
+    needAdmin(token);
+    if (!PRODUCTS[id]) fail('Product not found.');
+    const ov = load(K.products, {});
+    const cur = ov[id] || {};
+    if (price !== undefined) cur.price = Math.round(Number(price));
+    if (mrp !== undefined) cur.mrp = Math.round(Number(mrp));
+    if (stock !== undefined) cur.stock = stock === '' || stock === null ? null : Math.floor(Number(stock));
+    if (active !== undefined) cur.active = !!active;
+    ov[id] = cur;
+    save(K.products, ov);
+    return (await handlers.adminProducts({ token })).find((p) => p.id === id);
+  },
+
+  async adminReviews({ token }) {
+    needAdmin(token);
+    return load(K.reviews, []).slice().reverse();
+  },
+
+  async adminUpdateReview({ token, reviewId, approved }) {
+    needAdmin(token);
+    const rv = load(K.reviews, []);
+    const r = rv.find((x) => x.id === reviewId) || fail('Review not found.');
+    r.approved = !!approved;
+    save(K.reviews, rv);
+    return {};
+  },
+
+  async adminDeleteReview({ token, reviewId }) {
+    needAdmin(token);
+    const rv = load(K.reviews, []);
+    if (!rv.some((x) => x.id === reviewId)) fail('Review not found.');
+    save(K.reviews, rv.filter((x) => x.id !== reviewId));
+    return {};
+  },
+
+  async adminSubscribers({ token }) {
+    needAdmin(token);
+    return load(K.subs, []).slice().reverse().map((email) => ({ email, createdAt: '' }));
   },
 
   async reviews() {

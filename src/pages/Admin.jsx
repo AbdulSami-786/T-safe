@@ -1,120 +1,71 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import Icon from '../components/Icon';
-import { ItemsList, StatusBadge } from '../components/OrderParts';
+import AdminOrders from '../components/admin/AdminOrders';
+import { AdminUsers, AdminSubscribers } from '../components/admin/AdminUsers';
+import AdminProducts from '../components/admin/AdminProducts';
+import AdminReviews from '../components/admin/AdminReviews';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
 import { api } from '../api';
-import { STATUS_STEPS, PAYMENT_METHODS } from '../data/products';
 import { fmtDate, rs } from '../utils/format';
 import usePageTitle from '../hooks/usePageTitle';
 
-const ALL_STATUSES = [...STATUS_STEPS.map((s) => s.key), 'Cancelled'];
-
-function OrderRow({ o, token, onSaved }) {
-  const toast = useToast();
-  const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ status: o.status, courier: o.courier || '', trackingNo: o.trackingNo || '', note: '' });
-  const [busy, setBusy] = useState(false);
-  const pm = PAYMENT_METHODS.find((m) => m.id === o.paymentMethod)?.name || o.paymentMethod;
-  const proofIsLink = /^https?:\/\//.test(o.proofUrl || '');
-
-  const save = async () => {
-    setBusy(true);
-    try {
-      const updated = await api.adminUpdateOrder({ token, orderId: o.id, ...f });
-      toast.success(`Order ${o.id} updated`);
-      setF((x) => ({ ...x, note: '' }));
-      onSaved(updated);
-    } catch (e) { toast.error(e.message); } finally { setBusy(false); }
-  };
-
-  return (
-    <>
-      <tr className={'ad-row' + (open ? ' open' : '')} onClick={() => setOpen(!open)}>
-        <td><b>#{o.id}</b></td>
-        <td>{fmtDate(o.createdAt)}</td>
-        <td>{o.customer.name}<small>{o.customer.phone}</small></td>
-        <td>{rs(o.total)}</td>
-        <td>{pm}</td>
-        <td><StatusBadge status={o.status} /></td>
-        <td className="chev" aria-hidden="true">{open ? '−' : '+'}</td>
-      </tr>
-      {open && (
-        <tr className="ad-detail">
-          <td colSpan={7}>
-            <div className="ad-grid">
-              <div>
-                <h4>Customer</h4>
-                <p>{o.customer.name}<br />{o.customer.phone}{o.customer.email && <><br />{o.customer.email}</>}<br />{o.customer.address}, {o.customer.city}</p>
-                <h4>Items</h4>
-                <ItemsList items={o.items} />
-                <p className="muted">Subtotal {rs(o.subtotal)} · Delivery {o.delivery ? rs(o.delivery) : 'FREE'} · <b>Total {rs(o.total)}</b></p>
-                <h4>Payment proof</h4>
-                {proofIsLink
-                  ? <a className="btn btn-white" href={o.proofUrl} target="_blank" rel="noreferrer noopener"><Icon name="eye" /> Open proof ({pm})</a>
-                  : <p className="muted">{o.proofUrl || 'No proof attached'}</p>}
-              </div>
-
-              <div className="ad-edit">
-                <h4>Update order</h4>
-                <label className="field"><span>Status</span>
-                  <select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })}>
-                    {ALL_STATUSES.map((s) => <option key={s}>{s}</option>)}
-                  </select>
-                </label>
-                <div className="grid2">
-                  <label className="field"><span>Courier</span><input value={f.courier} onChange={(e) => setF({ ...f, courier: e.target.value })} placeholder="e.g. TCS, Leopards" /></label>
-                  <label className="field"><span>Tracking no.</span><input value={f.trackingNo} onChange={(e) => setF({ ...f, trackingNo: e.target.value })} /></label>
-                </div>
-                <label className="field"><span>Note for history (optional)</span><input value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} /></label>
-                <button type="button" className="btn btn-ink" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save changes'}</button>
-
-                <h4>History</h4>
-                <ol className="history">
-                  {[...o.history].reverse().map((h, i) => <li key={i}><b>{h.status}</b><small>{fmtDate(h.at)}</small>{h.note && <p>{h.note}</p>}</li>)}
-                </ol>
-              </div>
-            </div>
-          </td>
-        </tr>
-      )}
-    </>
-  );
-}
+const PAID = ['Payment Verified', 'Packed', 'Out For Delivery', 'Delivered'];
+const REDEPLOY = 'This part of the dashboard needs the latest backend/Code.gs — paste it into Apps Script and Deploy → Manage deployments → Edit → New version → Deploy.';
+const niceErr = (m) => (/unknown action/i.test(m) ? REDEPLOY : m);
 
 export default function Admin() {
   usePageTitle('Admin');
   const { user, token, ready, isAdmin } = useAuth();
+  const [tab, setTab] = useState('overview');
+  const [orderFilter, setOrderFilter] = useState('All');
+  const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState(null);
-  const [err, setErr] = useState('');
-  const [q, setQ] = useState('');
-  const [status, setStatus] = useState('All');
+  const [users, setUsers] = useState(null);
+  const [products, setProducts] = useState(null);
+  const [reviews, setReviews] = useState(null);
+  const [subs, setSubs] = useState(null);
+  const [errs, setErrs] = useState({});
 
-  const load = useCallback(() => {
-    setErr('');
-    api.adminOrders(token).then(setOrders).catch((e) => setErr(e.message));
+  const load = useCallback(async () => {
+    setLoading(true);
+    const jobs = {
+      orders: [api.adminOrders(token), setOrders],
+      users: [api.adminUsers(token), setUsers],
+      products: [api.adminProducts(token), setProducts],
+      reviews: [api.adminReviews(token), setReviews],
+      subs: [api.adminSubscribers(token), setSubs],
+    };
+    const keys = Object.keys(jobs);
+    const res = await Promise.allSettled(keys.map((k) => jobs[k][0]));
+    const e = {};
+    res.forEach((r, i) => {
+      if (r.status === 'fulfilled') jobs[keys[i]][1](r.value);
+      else { e[keys[i]] = niceErr(r.reason?.message || 'Could not load.'); jobs[keys[i]][1]((cur) => cur ?? []); }
+    });
+    setErrs(e);
+    setLoading(false);
   }, [token]);
 
   useEffect(() => { if (isAdmin) load(); }, [isAdmin, load]);
 
   const stats = useMemo(() => {
     const list = orders || [];
-    const live = list.filter((o) => o.status !== 'Cancelled');
+    const paid = list.filter((o) => PAID.includes(o.status));
+    const awaiting = list.filter((o) => o.status === 'Order Placed');
     return {
       total: list.length,
-      pending: list.filter((o) => o.status === 'Order Placed').length,
+      awaiting,
+      awaitingValue: awaiting.reduce((s, o) => s + o.total, 0),
       shipping: list.filter((o) => ['Packed', 'Out For Delivery'].includes(o.status)).length,
-      revenue: live.reduce((s, o) => s + o.total, 0),
+      delivered: list.filter((o) => o.status === 'Delivered').length,
+      revenue: paid.reduce((s, o) => s + o.total, 0),
+      cancelled: list.filter((o) => o.status === 'Cancelled').length,
     };
   }, [orders]);
 
-  const shown = useMemo(() => {
-    const t = q.trim().toLowerCase();
-    return (orders || []).filter((o) =>
-      (status === 'All' || o.status === status) &&
-      (!t || o.id.toLowerCase().includes(t) || o.customer.name.toLowerCase().includes(t) || o.customer.phone.includes(t)));
-  }, [orders, q, status]);
+  const pendingReviews = (reviews || []).filter((r) => !r.approved).length;
+  const lowStock = (products || []).filter((p) => p.active && p.stock !== null && p.stock <= 20);
 
   if (!ready) return <section className="page wrap"><p className="muted">Loading…</p></section>;
   if (!user) return <Navigate to="/login" state={{ from: '/admin' }} replace />;
@@ -126,47 +77,103 @@ export default function Admin() {
     );
   }
 
-  const replace = (u) => setOrders((cur) => cur.map((o) => (o.id === u.id ? u : o)));
+  const goOrders = (status) => { setOrderFilter(status); setTab('orders'); };
+
+  const TABS = [
+    ['overview', 'Overview'],
+    ['orders', 'Orders', stats.awaiting.length],
+    ['users', 'Users', null],
+    ['products', 'Products', lowStock.length],
+    ['reviews', 'Reviews', pendingReviews],
+    ['subs', 'Subscribers', null],
+  ];
+
+  const body = (data, err, render) => {
+    if (err) return <p className="form-err"><Icon name="x" /> {err}</p>;
+    if (!data) return <p className="muted">Loading…</p>;
+    return render(data);
+  };
 
   return (
     <section className="page wrap">
       <header className="sec-head acct-head">
         <div>
           <span className="stk">Admin</span>
-          <h1 className="h-xl">Orders <mark>desk</mark></h1>
+          <h1 className="h-xl">Control <mark>panel</mark></h1>
         </div>
-        <button type="button" className="btn btn-white" onClick={load}>Refresh</button>
+        <button type="button" className="btn btn-white" onClick={load} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</button>
       </header>
 
-      <div className="stat-row">
-        <div className="stat s1"><b>{stats.total}</b><span>Total orders</span></div>
-        <div className="stat s2"><b>{stats.pending}</b><span>Awaiting verification</span></div>
-        <div className="stat s3"><b>{stats.shipping}</b><span>Packed / on the way</span></div>
-        <div className="stat s4"><b>{rs(stats.revenue)}</b><span>Order value (excl. cancelled)</span></div>
-      </div>
+      <nav className="ad-tabs" role="tablist" aria-label="Admin sections">
+        {TABS.map(([k, label, n]) => (
+          <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => (k === 'orders' ? goOrders('All') : setTab(k))}>
+            {label}{n ? <i className="ad-count">{n}</i> : null}
+          </button>
+        ))}
+      </nav>
 
-      <div className="ad-filters">
-        <input type="search" placeholder="Search order ID, name or phone" value={q} onChange={(e) => setQ(e.target.value)} />
-        <select value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option>All</option>
-          {ALL_STATUSES.map((s) => <option key={s}>{s}</option>)}
-        </select>
-      </div>
+      {tab === 'overview' && body(orders, errs.orders, () => (
+        <>
+          <div className="stat-row">
+            <div className="stat s1"><b>{stats.total}</b><span>Total orders</span></div>
+            <div className="stat s2"><b>{stats.awaiting.length}</b><span>Payments to verify ({rs(stats.awaitingValue)})</span></div>
+            <div className="stat s3"><b>{stats.shipping}</b><span>Packed / on the way</span></div>
+            <div className="stat s4"><b>{rs(stats.revenue)}</b><span>Verified sales (excl. cancelled)</span></div>
+          </div>
+          <div className="stat-row">
+            <div className="stat s3"><b>{stats.delivered}</b><span>Delivered</span></div>
+            <div className="stat s1"><b>{stats.cancelled}</b><span>Cancelled</span></div>
+            <div className="stat s2"><b>{users ? users.length : '—'}</b><span>Registered users</span></div>
+            <div className="stat s4"><b>{subs ? subs.length : '—'}</b><span>Newsletter subscribers</span></div>
+          </div>
 
-      {err && <p className="form-err"><Icon name="x" /> {err}</p>}
-      {!orders && !err && <p className="muted">Loading orders…</p>}
+          <div className="ad-two">
+            <div className="card ad-panel">
+              <h3>Payments waiting for verification</h3>
+              {stats.awaiting.length === 0 && <p className="muted">All caught up — no unverified payments.</p>}
+              {stats.awaiting.slice(0, 6).map((o) => (
+                <button key={o.id} type="button" className="ad-line" onClick={() => goOrders('Order Placed')}>
+                  <b>#{o.id}</b><span>{o.customer.name}</span><em>{rs(o.total)}</em><small>{fmtDate(o.createdAt)}</small>
+                </button>
+              ))}
+              {stats.awaiting.length > 6 && <button type="button" className="link-btn" onClick={() => goOrders('Order Placed')}>See all {stats.awaiting.length} →</button>}
+            </div>
 
-      {orders && (
-        <div className="table-scroll card">
-          <table className="ad-table">
-            <thead><tr><th>Order</th><th>Placed</th><th>Customer</th><th>Total</th><th>Paid via</th><th>Status</th><th /></tr></thead>
-            <tbody>
-              {shown.map((o) => <OrderRow key={o.id} o={o} token={token} onSaved={replace} />)}
-              {!shown.length && <tr><td colSpan={7} className="muted center">No orders match.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      )}
+            <div className="card ad-panel">
+              <h3>Needs attention</h3>
+              <button type="button" className="ad-line" onClick={() => setTab('reviews')}>
+                <b>{pendingReviews}</b><span>review{pendingReviews === 1 ? '' : 's'} waiting for approval</span>
+              </button>
+              {lowStock.length === 0
+                ? <p className="muted">Stock levels look fine.</p>
+                : lowStock.map((p) => (
+                  <button key={p.id} type="button" className="ad-line" onClick={() => setTab('products')}>
+                    <b>{p.stock}</b><span>{p.name} — {p.stock <= 0 ? 'sold out' : 'low stock'}</span>
+                  </button>
+                ))}
+              {Object.entries(errs).filter(([k]) => k !== 'orders').map(([k, m]) => <p key={k} className="form-err"><Icon name="x" /> {k}: {m}</p>)}
+            </div>
+          </div>
+
+          <div className="card ad-panel" style={{ marginTop: 24 }}>
+            <h3>Latest orders</h3>
+            {(orders || []).slice(0, 6).map((o) => (
+              <button key={o.id} type="button" className="ad-line" onClick={() => goOrders('All')}>
+                <b>#{o.id}</b><span>{o.customer.name}</span><em>{rs(o.total)}</em><small>{o.status}</small>
+              </button>
+            ))}
+            {!(orders || []).length && <p className="muted">No orders yet.</p>}
+          </div>
+        </>
+      ))}
+
+      {tab === 'orders' && body(orders, errs.orders, (d) => (
+        <AdminOrders key={orderFilter} orders={d} token={token} setOrders={setOrders} initialStatus={orderFilter} />
+      ))}
+      {tab === 'users' && body(users, errs.users, (d) => <AdminUsers users={d} me={user} token={token} setUsers={setUsers} />)}
+      {tab === 'products' && body(products, errs.products, (d) => <AdminProducts products={d} token={token} setProducts={setProducts} />)}
+      {tab === 'reviews' && body(reviews, errs.reviews, (d) => <AdminReviews reviews={d} token={token} setReviews={setReviews} />)}
+      {tab === 'subs' && body(subs, errs.subs, (d) => <AdminSubscribers subs={d} />)}
     </section>
   );
 }
