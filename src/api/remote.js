@@ -1,7 +1,7 @@
 // Talks to the Google Apps Script web app (backend/Code.gs).
 // POST with text/plain avoids the CORS pre-flight that Apps Script cannot answer.
 
-const URL_ = import.meta.env.VITE_API_URL;
+import { API_URL as URL_ } from '../config';
 
 export async function remoteCall(action, payload = {}) {
   let res;

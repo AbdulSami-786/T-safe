@@ -1,5 +1,5 @@
 // DEMO backend: same actions as backend/Code.gs but data lives in this browser's
-// localStorage. Used automatically when VITE_API_URL is empty.
+// localStorage. Used automatically when API_URL (src/config.js) is empty.
 import { PRODUCTS, DELIVERY_FEE, FREE_DELIVERY_FROM } from '../data/products';
 import { normPhone, isEmail, isPhone } from '../utils/format';
 
@@ -83,7 +83,7 @@ const handlers = {
   },
 
   async createOrder({ token, customer, items, paymentMethod, proof }) {
-    const user = token ? userFromToken(token) : null;
+    const user = userFromToken(token) || fail('Please log in to place an order.');
     const c = customer || {};
     if (String(c.name || '').trim().length < 2) fail('Please enter your name.');
     if (!isPhone(c.phone)) fail('Enter a valid Pakistani mobile number (03XXXXXXXXX).');

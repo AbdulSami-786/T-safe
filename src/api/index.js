@@ -1,7 +1,8 @@
 import { remoteCall } from './remote';
 import { mockCall } from './mock';
+import { API_URL } from '../config';
 
-export const DEMO_MODE = !import.meta.env.VITE_API_URL;
+export const DEMO_MODE = !API_URL;
 const call = DEMO_MODE ? mockCall : remoteCall;
 
 // Files are sent to Apps Script as base64 inside the JSON body.

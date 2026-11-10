@@ -53,6 +53,9 @@ export default function Login() {
         </div>
 
         <h1 className="h-md">{mode === 'login' ? <>Welcome <mark>back</mark></> : <>Join <mark>T-Safe</mark></>}</h1>
+        {loc.state?.reason === 'order' && (
+          <p className="login-hint" role="status"><Icon name="user" /> Please log in or create an account to place your order. Your cart is saved.</p>
+        )}
         <p className="muted">{mode === 'login' ? 'Log in to see your orders and check out faster.' : 'Save your details, track every order and write reviews.'}</p>
 
         <form onSubmit={submit} noValidate>

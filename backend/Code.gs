@@ -292,7 +292,7 @@ function saveProof_(orderId, proof) {
 }
 
 function createOrder_(b) {
-  var user = b.token ? userFromToken_(b.token) : null;
+  var user = needUser_(b.token); // ordering requires a logged-in account
   var c = b.customer || {};
   var name = str_(c.name, 80), email = str_(c.email, 120), phone = normPhone_(c.phone),
       address = str_(c.address, 300), city = str_(c.city, 60);
@@ -347,7 +347,7 @@ function createOrder_(b) {
 
     var ts = nowIso_();
     appendRow_('Orders', {
-      OrderID: orderId, CreatedAt: ts, UpdatedAt: ts, UserID: user ? user.UserID : '',
+      OrderID: orderId, CreatedAt: ts, UpdatedAt: ts, UserID: user.UserID,
       Name: name, Email: email, Phone: phone, Address: address, City: city,
       Items: JSON.stringify(lines), Subtotal: subtotal, Delivery: delivery, Total: subtotal + delivery,
       PaymentMethod: b.paymentMethod, ProofURL: proofUrl, Status: 'Order Placed',

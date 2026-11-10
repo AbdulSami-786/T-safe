@@ -13,7 +13,7 @@ npm install
 npm run dev          # http://localhost:5173
 ```
 
-With `VITE_API_URL` empty the site runs in **demo mode**: accounts/orders are stored in the browser only.
+With `API_URL` in `src/config.js` empty the site runs in **demo mode**: accounts/orders are stored in the browser only.
 Demo admin: `admin@tsafe.pk` / `admin123`. (Demo admin does not exist once you connect the real sheet.)
 
 ## 2. Connect Google Sheets (real data)
@@ -26,10 +26,7 @@ Demo admin: `admin@tsafe.pk` / `admin123`. (Demo admin does not exist once you c
    `Products · Users · Sessions · Orders · Reviews · Subscribers`, plus a private Drive folder *T-Safe Payment Proofs*.
 5. **Deploy → New deployment → type: Web app** → *Execute as:* **Me** · *Who has access:* **Anyone** → Deploy.
    Copy the **Web app URL** (ends in `/exec`).
-6. In the project root copy `.env.example` to `.env` and paste the URL:
-   ```
-   VITE_API_URL=https://script.google.com/macros/s/XXXXXXXX/exec
-   ```
+6. Open `src/config.js` and paste the URL into `API_URL` (no `.env` file needed — it is in code, so Vercel always has it).
 7. Restart `npm run dev` (or rebuild). The yellow "DEMO MODE" bar disappears.
 
 > Whenever you change `Code.gs`: **Deploy → Manage deployments → Edit → New version → Deploy**
@@ -60,7 +57,7 @@ Order statuses: `Order Placed → Payment Verified → Packed → Out For Delive
 npm run build        # outputs dist/
 ```
 Upload `dist/` to Netlify / Vercel / Cloudflare Pages (SPA rewrite files `public/_redirects` and `vercel.json` are included;
-set `VITE_API_URL` as an environment variable in the host's dashboard). Plain static hosts without rewrite rules
+the API URL is already in `src/config.js`, nothing to set in the host's dashboard). Plain static hosts without rewrite rules
 (e.g. GitHub Pages) need a 404.html → index.html fallback.
 
 ## Good to know

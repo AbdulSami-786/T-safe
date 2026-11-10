@@ -2,13 +2,23 @@ import { Link, useNavigate } from 'react-router-dom';
 import Icon from '../components/Icon';
 import { Receipt, Qty } from '../components/OrderParts';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { rsShort } from '../utils/format';
 import usePageTitle from '../hooks/usePageTitle';
 
 export default function Cart() {
   usePageTitle('Your Cart', 'Review the items in your T-Safe cart.');
   const { lines, totals, setQty, remove } = useCart();
+  const { user } = useAuth();
+  const toast = useToast();
   const nav = useNavigate();
+
+  const proceed = () => {
+    if (user) return nav('/checkout');
+    toast.error('Please log in or create an account to place an order.');
+    nav('/login', { state: { from: '/checkout', reason: 'order' } });
+  };
 
   if (!lines.length) {
     return (
@@ -64,7 +74,7 @@ export default function Cart() {
         </div>
 
         <Receipt lines={lines} totals={totals}>
-          <button type="button" className="btn btn-blue btn-block" onClick={() => nav('/checkout')}>Proceed To Billing <Icon name="wallet" /></button>
+          <button type="button" className="btn btn-blue btn-block" onClick={proceed}>Proceed To Billing <Icon name="wallet" /></button>
           <p className="secure"><Icon name="shield" /> Orders confirmed after payment proof is received</p>
         </Receipt>
       </div>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import Icon from '../components/Icon';
 import { Receipt } from '../components/OrderParts';
 import { useCart } from '../context/CartContext';
@@ -52,7 +52,7 @@ export function PaymentCards({ pay, setPay }) {
 export default function Checkout() {
   usePageTitle('Checkout', 'Billing and payment for your T-Safe order.');
   const { lines, totals, clear, setQty } = useCart();
-  const { user, token } = useAuth();
+  const { user, token, ready } = useAuth();
   const toast = useToast();
   const nav = useNavigate();
   const fileRef = useRef(null);
@@ -74,6 +74,10 @@ export default function Checkout() {
     setF({ ...f, [k]: e.target.value });
     if (errs[k]) setErrs((x) => ({ ...x, [k]: '' }));
   };
+
+  // Ordering requires an account: wait for the saved session to load, then send guests to log in.
+  if (!ready) return <section className="page wrap"><p className="muted">Loading…</p></section>;
+  if (!user) return <Navigate to="/login" replace state={{ from: '/checkout', reason: 'order' }} />;
 
   if (!lines.length) {
     return (
@@ -154,13 +158,6 @@ export default function Checkout() {
         <h1 className="h-xl">Pay your <mark>way</mark></h1>
         <p>Send your payment to any account below, then upload the proof of payment.</p>
       </header>
-
-      {!user && (
-        <div className="login-hint card">
-          <Icon name="user" />
-          <span>Have an account? <Link to="/login" state={{ from: '/checkout' }}>Log in</Link> to save this order to your profile — or just continue as a guest.</span>
-        </div>
-      )}
 
       <form className="co-grid" onSubmit={submit} noValidate>
         <div className="pay-col">
