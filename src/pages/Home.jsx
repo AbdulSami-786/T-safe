@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import Hero from '../components/Hero';
 import Icon from '../components/Icon';
 import { ValueSaverBand } from '../components/HomeSections';
-import usePageTitle from '../hooks/usePageTitle';
+import { useSeo } from '../hooks/usePageTitle';
 
 const TRUST = [
   { i: 'truck', t: 'Free Delivery', s: 'On all orders billing from 999/-' },
@@ -22,7 +22,7 @@ function Tape({ items }) {
 }
 
 export default function Home() {
-  usePageTitle('', 'T-Safe Dental Care — premium toothbrushes and oral care delivered across Pakistan. Value-Saver Series and the LUXE-Premium Series.');
+  useSeo('/');
 
   return (
     <div className="home-white">

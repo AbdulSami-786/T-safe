@@ -2,11 +2,11 @@ import { Link } from 'react-router-dom';
 import Icon from '../components/Icon';
 import { NanoCard, TongueCard } from '../components/ProductCards';
 import { useCatalog } from '../context/CatalogContext';
-import usePageTitle from '../hooks/usePageTitle';
+import { useSeo } from '../hooks/usePageTitle';
 
 export default function Shop() {
   const { products: P } = useCatalog();
-  usePageTitle('Shop Value-Saver Series', 'Shop the T-Safe Value-Saver Series — Nano toothbrush with travel case and the Essential tongue cleaner at half the price.');
+  useSeo('/shop');
 
   return (
     <section className="shop wrap page-shop">

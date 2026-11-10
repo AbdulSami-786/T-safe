@@ -1,11 +1,11 @@
 import Icon from '../components/Icon';
 import { BundleBuy } from '../components/ProductCards';
 import { useCatalog } from '../context/CatalogContext';
-import usePageTitle from '../hooks/usePageTitle';
+import { useSeo } from '../hooks/usePageTitle';
 
 export default function Bundles() {
   const { products: P } = useCatalog();
-  usePageTitle('Bundle Packages', 'One Nano toothbrush with travel case and one Essential tongue cleaner — the complete everyday routine in one T-Safe bundle.');
+  useSeo('/bundles');
 
   return (
     <section className="bundle page-bundle">

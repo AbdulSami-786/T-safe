@@ -4,10 +4,10 @@ import Icon from '../components/Icon';
 import { ItemsList, StatusBadge, StatusLevels } from '../components/OrderParts';
 import { api } from '../api';
 import { fmtDate, rs } from '../utils/format';
-import usePageTitle from '../hooks/usePageTitle';
+import { useSeo } from '../hooks/usePageTitle';
 
 export default function Track() {
-  usePageTitle('Track Your Order', 'Enter your order number and phone number to see your T-Safe delivery status.');
+  useSeo('/track');
   const [params, setParams] = useSearchParams();
   const [order, setOrder] = useState(params.get('order') || '');
   const [phone, setPhone] = useState(params.get('phone') || '');

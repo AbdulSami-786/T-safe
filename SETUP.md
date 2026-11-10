@@ -73,3 +73,22 @@ set `VITE_API_URL` as an environment variable in the host's dashboard). Plain st
   has no real rate-limiting — it is fine for a small shop, not for a large public service. Payment proofs stay private in
   your Drive. Google applies daily quotas to Apps Script (including a small daily email limit on free accounts), so order emails may stop on very busy days.
 - The bundle has its own stock number (it does not subtract from Nano/Tongue stock).
+
+## 4. SEO (Google, WhatsApp & Facebook previews)
+
+Already built in:
+- A separate pre-rendered page per public URL (`/shop`, `/luxe`, `/bundles`, `/reviews`, `/track`) with its own title, description,
+  canonical link, Open Graph / Twitter card and JSON-LD structured data (Organization, WebSite, Product, Breadcrumbs).
+- `sitemap.xml` and `robots.txt` generated on every build. Cart, checkout, login, account and admin are `noindex` and blocked in robots.txt.
+- Web app manifest + icons, `lang="en-PK"`, one `<h1>` per page, alt text on images, long-term caching + security headers (`vercel.json`).
+
+**Set your domain** (Vercel → Project → Settings → Environment Variables) and redeploy:
+```
+VITE_SITE_URL=https://yourdomain.pk
+```
+(default if not set: `https://tsafe.pk`). Page titles/descriptions are edited in `src/data/seo.js`.
+
+After going live:
+1. **Google Search Console** → add your domain → verify (Vercel DNS/TXT record) → *Sitemaps* → submit `sitemap.xml`.
+2. **Google Business Profile** (free) — list the shop so it appears on Maps/local search.
+3. Product prices in the JSON-LD come from `src/data/products.js`; keep them equal to the **Products** sheet.

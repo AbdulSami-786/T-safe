@@ -1,10 +1,10 @@
 import { AuraCard } from '../components/ProductCards';
 import { useCatalog } from '../context/CatalogContext';
-import usePageTitle from '../hooks/usePageTitle';
+import { useSeo } from '../hooks/usePageTitle';
 
 export default function Luxe() {
   const { products: P } = useCatalog();
-  usePageTitle('LUXE Premium Series', 'LUXE-Premium Series by T-Safe — Soft Aura 15K toothbrush with 15,000+ ultra-soft bristles. A new era of dental care.');
+  useSeo('/luxe');
 
   return (
     <section className="luxe page-luxe" id="luxe">
