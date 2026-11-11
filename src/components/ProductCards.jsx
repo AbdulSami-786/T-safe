@@ -31,22 +31,26 @@ function Price({ p }) {
   );
 }
 
-function AddButton({ p, color, silver = false }) {
+function AddButton({ p, color, silver = false, custom = '', onAdded }) {
   const { add } = useCart();
   const toast = useToast();
   const sold = p.stock !== null && p.stock !== undefined && p.stock <= 0;
   return (
-    <button
-      type="button"
-      className={'btn btn-block ' + (silver ? 'btn-silver' : 'btn-ink')}
-      disabled={sold}
-      onClick={() => {
-        add(p.id, color, 1);
-        toast.success(`${p.name}${color ? ' (' + color + ')' : ''} added to cart`, { action: { to: '/cart', label: 'View cart' } });
-      }}
-    >
-      {sold ? 'Sold out' : <>Add To Cart <Icon name="cart" /></>}
-    </button>
+    <>
+      <button
+        type="button"
+        className={'btn btn-block ' + (silver ? 'btn-silver' : 'btn-ink')}
+        disabled={sold}
+        onClick={() => {
+          add(p.id, color, 1, custom);
+          toast.success(`${p.name}${color ? ' (' + color + ')' : ''}${custom ? ' — “' + custom + '”' : ''} added to cart`, { action: { to: '/cart', label: 'View cart' } });
+          if (onAdded) onAdded();
+        }}
+      >
+        {sold ? 'Sold out' : <>Add To Cart <Icon name="cart" /></>}
+      </button>
+      <p className="deliv-note"><Icon name="truck" /> Delivery in 5 to 8 days</p>
+    </>
   );
 }
 
@@ -123,6 +127,8 @@ export function TongueCard({ p }) {
 /* ---------------- LUXE · Soft Aura 15K ---------------- */
 export function AuraCard({ p }) {
   const [sel, setSel] = useState(1);
+  const [custom, setCustom] = useState('');
+  const name = custom.trim();
   return (
     <article className="pc lux row reveal" id="aura">
       <input className="sr" type="radio" name="aura" id="a1" checked={sel === 1} onChange={() => setSel(1)} />
@@ -147,7 +153,21 @@ export function AuraCard({ p }) {
           ))}
         </div>
 
-        <AddButton p={p} color={p.colors[sel - 1].name} silver />
+        <div className="personalize">
+          <label htmlFor="aura-name"><Icon name="sparkle" /> Personalize Your Brush</label>
+          <input
+            id="aura-name"
+            type="text"
+            value={custom}
+            maxLength={20}
+            autoComplete="off"
+            placeholder="Write the name for your toothbrush (optional)"
+            onChange={(e) => setCustom(e.target.value)}
+          />
+          <small>Your name will be written on your toothbrush · {custom.length}/20</small>
+        </div>
+
+        <AddButton p={p} color={p.colors[sel - 1].name} silver custom={name} onAdded={() => setCustom('')} />
         <Description d={p.desc} />
       </div>
     </article>

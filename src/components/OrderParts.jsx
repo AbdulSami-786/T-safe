@@ -12,11 +12,12 @@ export function Receipt({ lines, totals, title = 'Your Cart', children, qtyContr
         <p className="rc-sub">T-Safe Dental Care · order slip</p>
 
         {lines.map((l) => (
-          <div className="rc-line" key={l.id + l.color}>
+          <div className="rc-line" key={l.id + l.color + l.custom}>
             <img src={l.thumb} alt="" />
             <div>
               <b>{l.name}</b>
               <small>{l.color ? 'Colour: ' + l.color : l.series}</small>
+              {l.custom && <small>Name on brush: <b>{l.custom}</b></small>}
               {qtyControls
                 ? <Qty line={l} onQty={onQty} />
                 : <small>Qty: {l.qty}</small>}
@@ -32,7 +33,7 @@ export function Receipt({ lines, totals, title = 'Your Cart', children, qtyContr
             <p><Icon name="truck" /> You’ve unlocked <b>free delivery</b> 🎉</p>
           )}
           <div className="meter"><i style={{ '--w': Math.min(100, (totals.subtotal / 999) * 100) + '%' }} /></div>
-          <small>Standard delivery charges: 200/-<br />Free delivery for all orders billing from 999/-</small>
+          <small>Standard delivery charges: 200/-<br />Free delivery for all orders billing from 999/-<br />Delivery time: 5 to 8 days</small>
         </div>
 
         <dl>
@@ -52,9 +53,9 @@ export function Receipt({ lines, totals, title = 'Your Cart', children, qtyContr
 export function Qty({ line, onQty }) {
   return (
     <div className="qty">
-      <button type="button" aria-label="Decrease quantity" onClick={() => onQty(line.id, line.color, line.qty - 1)}>−</button>
+      <button type="button" aria-label="Decrease quantity" onClick={() => onQty(line.id, line.color, line.qty - 1, line.custom)}>−</button>
       <span aria-live="polite">{line.qty}</span>
-      <button type="button" aria-label="Increase quantity" onClick={() => onQty(line.id, line.color, line.qty + 1)}>+</button>
+      <button type="button" aria-label="Increase quantity" onClick={() => onQty(line.id, line.color, line.qty + 1, line.custom)}>+</button>
     </div>
   );
 }
@@ -93,7 +94,7 @@ export function ItemsList({ items }) {
     <ul className="items-list">
       {items.map((it, i) => (
         <li key={i}>
-          <span>{it.qty} × {it.name}{it.color ? ` (${it.color})` : ''}</span>
+          <span>{it.qty} × {it.name}{it.color ? ` (${it.color})` : ''}{it.custom ? ` — name: “${it.custom}”` : ''}</span>
           <b>{rs(it.price * it.qty)}</b>
         </li>
       ))}

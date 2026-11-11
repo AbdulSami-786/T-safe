@@ -19,7 +19,7 @@ export default function OrderPlaced() {
         <ol className="steps-list">
           <li><b>1</b> We check your payment proof (usually within a few hours).</li>
           <li><b>2</b> Once verified, we pack your order and hand it to the courier.</li>
-          <li><b>3</b> Track every step with your Order ID and phone number.</li>
+          <li><b>3</b> Your order arrives in <b>5 to 8 days</b>. Track every step with your Order ID and phone number.</li>
         </ol>
 
         <p className="muted">Save your Order ID — you’ll need it to track your delivery.</p>

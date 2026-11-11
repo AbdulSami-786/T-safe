@@ -332,7 +332,11 @@ function createOrder_(b) {
         if (p.colors.indexOf(color) < 0) fail_('Please choose a colour for ' + p.name + '.');
       }
       wanted[p.id] = (wanted[p.id] || 0) + qty;
-      lines.push({ id: p.id, name: p.name, color: color, qty: qty, price: p.price, mrp: p.mrp });
+      var line = { id: p.id, name: p.name, color: color, qty: qty, price: p.price, mrp: p.mrp };
+      // "Personalize Your Brush" — name written on the Soft Aura 15K (max 20 chars)
+      var custom = p.id === 'aura' ? str_(it.custom, 20) : '';
+      if (custom) line.custom = custom;
+      lines.push(line);
     });
     Object.keys(wanted).forEach(function (id) {
       var p = byId[id];

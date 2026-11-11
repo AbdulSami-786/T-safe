@@ -43,24 +43,26 @@ export default function Cart() {
         <span className="stk">Cart</span>
         <h1 className="h-xl">Your <mark>cart</mark></h1>
         <p>Standard delivery charges: 200/-. Free delivery for all orders billing from 999/-.</p>
+        <p><b>Delivery time: 5 to 8 days.</b></p>
       </header>
 
       <div className="co-grid">
         <div className="cart-list">
           {lines.map((l) => (
-            <article className="cart-item card" key={l.id + l.color}>
+            <article className="cart-item card" key={l.id + l.color + l.custom}>
               <img src={l.thumb} alt="" />
               <div className="ci-info">
                 <p className="pc-k">{l.series}</p>
                 <h3>{l.name}</h3>
                 {l.color && <small>Colour: <b>{l.color}</b></small>}
+                {l.custom && <small>Name on brush: <b>{l.custom}</b></small>}
                 <Qty line={l} onQty={setQty} />
                 {l.stock !== null && l.stock !== undefined && l.qty > l.stock && <p className="warn-text">Only {l.stock} left in stock.</p>}
               </div>
               <div className="ci-price">
                 <s>{rsShort(l.mrp * l.qty)}</s>
                 <b>{rsShort(l.price * l.qty)}</b>
-                <button type="button" className="link-btn" onClick={() => remove(l.id, l.color)}><Icon name="trash" /> Remove</button>
+                <button type="button" className="link-btn" onClick={() => remove(l.id, l.color, l.custom)}><Icon name="trash" /> Remove</button>
               </div>
             </article>
           ))}

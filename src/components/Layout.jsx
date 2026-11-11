@@ -57,6 +57,9 @@ function Header() {
           <NavLink to="/reviews" onClick={close}>Reviews</NavLink>
           <NavLink to="/track" onClick={close}>Track Order</NavLink>
           {isAdmin && <NavLink to="/admin" onClick={close}>Admin</NavLink>}
+          {/* Phone only: the header shows just logo + menu, so these live in the menu */}
+          <NavLink to="/cart" className="nav-m" onClick={close}><span>Cart</span><b>{count}</b></NavLink>
+          <NavLink to={user ? '/account' : '/login'} className="nav-m" onClick={close}>{user ? 'My Account' : 'Login / Register'}</NavLink>
         </nav>
 
         <Link className="acct-btn" to={user ? '/account' : '/login'} aria-label={user ? 'My account' : 'Log in'}>

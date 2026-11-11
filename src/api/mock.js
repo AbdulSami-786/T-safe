@@ -100,7 +100,10 @@ const handlers = {
       const qty = Math.floor(Number(it.qty));
       if (!(qty >= 1 && qty <= 20)) fail('Invalid quantity.');
       if (p.colors.length && !p.colors.some((x) => x.name === it.color)) fail('Please choose a colour for ' + p.name + '.');
-      return { id: p.id, name: p.name, color: p.colors.length ? it.color : '', qty, price: p.price, mrp: p.mrp };
+      const custom = p.id === 'aura' ? String(it.custom || '').trim().slice(0, 20) : '';
+      const line = { id: p.id, name: p.name, color: p.colors.length ? it.color : '', qty, price: p.price, mrp: p.mrp };
+      if (custom) line.custom = custom;
+      return line;
     });
     const subtotal = lines.reduce((s, l) => s + l.price * l.qty, 0);
     const delivery = subtotal >= FREE_DELIVERY_FROM ? 0 : DELIVERY_FEE;

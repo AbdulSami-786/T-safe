@@ -226,3 +226,25 @@ img, svg, video { max-width: 100%; }
   .btn { min-height: 48px; }
   .tabs button, .seg button { min-height: 44px; }
 }
+
+/* ---------- Personalize Your Brush (Soft Aura 15K) + delivery note ---------- */
+.personalize { margin: 18px 0 14px; display: grid; gap: 8px; }
+.personalize label { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-weight: 700; font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; }
+.personalize .ico { width: 1.15em; height: 1.15em; }
+.personalize input { width: 100%; min-height: 48px; padding: 12px 16px; font: inherit; font-weight: 700; color: var(--ink); background: #fff; border: 3px solid var(--ink); border-radius: 14px; box-shadow: 3px 3px 0 var(--ink); }
+.personalize input::placeholder { color: #7b8497; font-weight: 600; }
+.personalize input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.personalize small { font-size: .78rem; opacity: .75; }
+.deliv-note { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 12px 0 0; font-size: .86rem; font-weight: 700; opacity: .85; }
+.deliv-note .ico { width: 1.2em; height: 1.2em; }
+.rc-line small b { font-weight: 800; }
+
+/* Mobile header: only the logo + the 3-line menu button.
+   Account & Cart move inside the opened menu. */
+.nav .nav-m { display: none; }
+@media (max-width: 640px) {
+  .head .acct-btn, .head .cart-btn { display: none; }
+  .head .burger { display: flex; margin-left: auto; }
+  .nav .nav-m { display: flex; justify-content: space-between; gap: 10px; }
+  .nav .nav-m b { min-width: 26px; height: 26px; display: inline-grid; place-items: center; border-radius: 50%; background: var(--cobalt); color: #fff; border: 2px solid var(--ink); font-size: .75rem; }
+}

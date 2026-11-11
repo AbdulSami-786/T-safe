@@ -134,7 +134,7 @@ export default function Checkout() {
       const r = await api.createOrder({
         token,
         customer: { ...f, phone: normPhone(f.phone) },
-        items: lines.map((l) => ({ id: l.id, color: l.color, qty: l.qty })),
+        items: lines.map((l) => ({ id: l.id, color: l.color, qty: l.qty, custom: l.custom || '' })),
         paymentMethod: pay,
         proof: { name: proof.name, type: proof.type, data },
       });
